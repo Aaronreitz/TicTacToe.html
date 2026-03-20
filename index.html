@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TicTacToe</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar card">
+      <h2>Spielstand</h2>
+
+      <div class="scoreboard">
+        <div class="score-box">
+          <span class="label" id="labelX">Spieler X</span>
+          <span class="score" id="scoreX">0</span>
+        </div>
+
+        <div class="score-box">
+          <span class="label">Unentschieden</span>
+          <span class="score" id="scoreDraw">0</span>
+        </div>
+
+        <div class="score-box">
+          <span class="label" id="labelO">Spieler O</span>
+          <span class="score" id="scoreO">0</span>
+        </div>
+      </div>
+
+      <h2>Historie</h2>
+      <ul id="historyList" class="history-list">
+        <li class="history-empty">Noch keine Spiele abgeschlossen</li>
+      </ul>
+    </aside>
+
+    <main class="main-content">
+      <div class="card">
+        <div class="header">
+          <h1>TicTacToe</h1>
+          <p id="status" class="status">Spieler X ist am Zug</p>
+        </div>
+
+        <div class="board">
+          <button class="cell" data-index="0"><span class="cell-symbol"></span><span class="cell-hint">7</span></button>
+          <button class="cell" data-index="1"><span class="cell-symbol"></span><span class="cell-hint">8</span></button>
+          <button class="cell" data-index="2"><span class="cell-symbol"></span><span class="cell-hint">9</span></button>
+          <button class="cell" data-index="3"><span class="cell-symbol"></span><span class="cell-hint">4</span></button>
+          <button class="cell" data-index="4"><span class="cell-symbol"></span><span class="cell-hint">5</span></button>
+          <button class="cell" data-index="5"><span class="cell-symbol"></span><span class="cell-hint">6</span></button>
+          <button class="cell" data-index="6"><span class="cell-symbol"></span><span class="cell-hint">1</span></button>
+          <button class="cell" data-index="7"><span class="cell-symbol"></span><span class="cell-hint">2</span></button>
+          <button class="cell" data-index="8"><span class="cell-symbol"></span><span class="cell-hint">3</span></button>
+        </div>
+
+        <div class="footer">
+          <button id="nextRoundBtn" class="secondary-btn" disabled>Nächste Runde</button>
+          <button id="resetAllBtn" class="reset-btn">Alles zurücksetzen</button>
+        </div>
+      </div>
+    </main>
+
+    <aside class="sidebar card">
+      <h2>Spielmodus</h2>
+      <div class="mode-selector">
+        <button class="mode-btn active" data-mode="pvp">👤 vs Spieler</button>
+        <button class="mode-btn" data-mode="pvc">🤖 vs KI</button>
+      </div>
+
+      <div id="difficultySection" class="difficulty-section hidden">
+        <span class="player-label">Schwierigkeit</span>
+        <div class="difficulty-selector">
+          <button class="diff-btn" data-diff="easy">Leicht</button>
+          <button class="diff-btn active" data-diff="medium">Mittel</button>
+          <button class="diff-btn" data-diff="unbeatable">Unschlagbar</button>
+        </div>
+      </div>
+
+      <h2>Spielernamen</h2>
+      <div class="player-inputs">
+        <div class="player-input-group">
+          <label for="nameX" class="player-label x-label">Spieler X</label>
+          <input type="text" id="nameX" class="name-input" placeholder="Name eingeben..." maxlength="20" />
+        </div>
+        <div class="player-input-group">
+          <label for="nameO" class="player-label o-label">Spieler O</label>
+          <input type="text" id="nameO" class="name-input" placeholder="Name eingeben..." maxlength="20" />
+        </div>
+      </div>
+
+      <h2>Bestenliste</h2>
+      <ol id="leaderboardList" class="leaderboard-list">
+        <li class="leaderboard-empty">Noch keine Einträge</li>
+      </ol>
+    </aside>
+  </div>
+
+  <!-- Rundenende-Modal -->
+  <div id="roundModal" class="modal-overlay hidden">
+    <div class="modal">
+      <p id="modalText" class="modal-text"></p>
+      <div class="modal-actions">
+        <button id="modalNextBtn" class="secondary-btn">Nächste Runde</button>
+        <button id="modalResetBtn" class="reset-btn">Zurücksetzen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Konfetti -->
+  <canvas id="confettiCanvas"></canvas>
+
+  <!-- Fixierte Buttons -->
+  <div class="fixed-buttons">
+    <button id="muteToggle" class="icon-btn" title="Sound umschalten">🔊</button>
+    <button id="darkToggle" class="icon-btn" title="Dark Mode umschalten">🌙</button>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
