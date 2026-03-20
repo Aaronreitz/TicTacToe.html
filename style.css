@@ -179,6 +179,53 @@ body {
   display: none !important;
 }
 
+/* ── Spielziel ── */
+.goal-section {
+  margin-bottom: clamp(16px, 2vw, 28px);
+  display: grid;
+  gap: clamp(6px, 0.8vw, 8px);
+}
+
+.goal-stepper {
+  display: flex;
+  align-items: center;
+  gap: clamp(10px, 1.2vw, 16px);
+}
+
+.goal-btn {
+  width: clamp(30px, 2.4vw, 36px);
+  height: clamp(30px, 2.4vw, 36px);
+  border-radius: 50%;
+  border: 1px solid var(--surface-border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: clamp(16px, 1.4vw, 20px);
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.goal-btn:hover:not(:disabled) {
+  border-color: var(--label);
+  background: var(--btn-secondary-bg);
+}
+
+.goal-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.goal-value {
+  font-size: clamp(20px, 2vw, 26px);
+  font-weight: 700;
+  min-width: clamp(24px, 2vw, 32px);
+  text-align: center;
+}
+
 /* ── Spielernamen ── */
 .player-inputs {
   display: grid;

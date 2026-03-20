@@ -22,6 +22,10 @@ const confettiCanvas    = document.getElementById("confettiCanvas");
 const modeBtns          = document.querySelectorAll(".mode-btn");
 const diffBtns          = document.querySelectorAll(".diff-btn");
 const difficultySection = document.getElementById("difficultySection");
+const winsGoalDecBtn    = document.getElementById("winsGoalDec");
+const winsGoalIncBtn    = document.getElementById("winsGoalInc");
+const winsGoalDisplay   = document.getElementById("winsGoalDisplay");
+const modalNewGameBtn   = document.getElementById("modalNewGameBtn");
 
 // ── State ──
 let board         = ["", "", "", "", "", "", "", "", ""];
@@ -31,6 +35,9 @@ let round         = 1;
 let scores        = { X: 0, O: 0, draw: 0 };
 let gameMode      = "pvp";    // "pvp" | "pvc"
 let aiDifficulty  = "medium"; // "easy" | "medium" | "unbeatable"
+let winsGoal      = 3;
+let gameStarted   = false;
+let matchOver     = false;
 let audioMuted    = localStorage.getItem("muted") === "true";
 
 const EMPTY_BOARD = ["", "", "", "", "", "", "", "", ""];
@@ -49,24 +56,24 @@ function getAudioCtx() {
   return audioCtx;
 }
 
-function playTone(freq, duration, type = "sine", vol = 0.22) {
+function playTone(freq, duration, type = "sine", volume = 0.22) {
   if (audioMuted) return;
-  const ctx  = getAudioCtx();
-  const osc  = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.connect(gain);
+  const ctx        = getAudioCtx();
+  const oscillator = ctx.createOscillator();
+  const gain       = ctx.createGain();
+  oscillator.connect(gain);
   gain.connect(ctx.destination);
-  osc.type = type;
-  osc.frequency.value = freq;
-  gain.gain.setValueAtTime(vol, ctx.currentTime);
+  oscillator.type = type;
+  oscillator.frequency.value = freq;
+  gain.gain.setValueAtTime(volume, ctx.currentTime);
   gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
-  osc.start();
-  osc.stop(ctx.currentTime + duration);
+  oscillator.start();
+  oscillator.stop(ctx.currentTime + duration);
 }
 
 function playClick() { playTone(520, 0.08, "sine", 0.15); }
-function playWin()   { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => playTone(f, 0.28), i * 110)); }
-function playDraw()  { [380, 320, 260].forEach((f, i) => setTimeout(() => playTone(f, 0.22, "triangle", 0.18), i * 120)); }
+function playWin()   { [523, 659, 784, 1047].forEach((freq, i) => setTimeout(() => playTone(freq, 0.28), i * 110)); }
+function playDraw()  { [380, 320, 260].forEach((freq, i) => setTimeout(() => playTone(freq, 0.22, "triangle", 0.18), i * 120)); }
 
 // ── Konfetti ──
 let confettiFrame = null;
@@ -94,16 +101,16 @@ function launchConfetti() {
   function draw() {
     ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
     let alive = false;
-    pieces.forEach(p => {
-      p.y += p.speed;
-      p.x += p.drift;
-      p.angle += p.spin;
-      if (p.y < confettiCanvas.height + 20) alive = true;
+    pieces.forEach(piece => {
+      piece.y += piece.speed;
+      piece.x += piece.drift;
+      piece.angle += piece.spin;
+      if (piece.y < confettiCanvas.height + 20) alive = true;
       ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.rotate((p.angle * Math.PI) / 180);
-      ctx.fillStyle = p.color;
-      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.translate(piece.x, piece.y);
+      ctx.rotate((piece.angle * Math.PI) / 180);
+      ctx.fillStyle = piece.color;
+      ctx.fillRect(-piece.w / 2, -piece.h / 2, piece.w, piece.h);
       ctx.restore();
     });
     if (alive) confettiFrame = requestAnimationFrame(draw);
@@ -115,6 +122,15 @@ function launchConfetti() {
 // ── Modal ──
 function showModal(text) {
   modalText.textContent = text;
+  modalNextBtn.classList.remove("hidden");
+  modalNewGameBtn.classList.add("hidden");
+  roundModal.classList.remove("hidden");
+}
+
+function showMatchModal(text) {
+  modalText.textContent = text;
+  modalNextBtn.classList.add("hidden");
+  modalNewGameBtn.classList.remove("hidden");
   roundModal.classList.remove("hidden");
 }
 
@@ -130,8 +146,8 @@ function getPlayerName(player) {
 }
 
 // Check win for any board state (used by both game logic and minimax)
-function hasWon(player, b) {
-  return winPatterns.some(p => p.every(i => b[i] === player));
+function hasWon(player, state) {
+  return winPatterns.some(pattern => pattern.every(i => state[i] === player));
 }
 
 function getWinningPattern(player) {
@@ -169,6 +185,10 @@ function handleCellClick(event) {
 }
 
 function placeMove(index, player) {
+  if (!gameStarted) {
+    gameStarted = true;
+    setGoalButtonStates();
+  }
   board[index] = player;
   cells[index].querySelector(".cell-symbol").textContent = player;
   cells[index].disabled = true;
@@ -180,15 +200,23 @@ function placeMove(index, player) {
   if (winPattern) {
     winPattern.forEach(i => cells[i].classList.add("winner"));
     const name = getPlayerName(player);
-    statusText.textContent = `${name} hat Runde ${round} gewonnen!`;
     gameOver = true;
     scores[player]++;
     updateScoreboard();
     addHistoryEntry(`Runde ${round}: ${name} gewinnt`);
-    if (gameMode !== "pvc") addToLeaderboard(name);
     playWin();
     launchConfetti();
-    setTimeout(() => showModal(`🏆 ${name} gewinnt Runde ${round}!`), 800);
+    if (scores[player] >= winsGoal) {
+      matchOver = true;
+      statusText.textContent = `${name} gewinnt das Gesamtspiel!`;
+      const nameInput = player === "X" ? nameXInput : nameOInput;
+      if (gameMode !== "pvc" && nameInput.value.trim()) addToLeaderboard(name);
+      const siegeWord = scores[player] === 1 ? "Sieg" : "Siegen";
+      setTimeout(() => showMatchModal(`🏆 ${name} gewinnt das Gesamtspiel mit ${scores[player]} ${siegeWord}!`), 800);
+    } else {
+      statusText.textContent = `${name} hat Runde ${round} gewonnen!`;
+      setTimeout(() => showModal(`🏆 ${name} gewinnt Runde ${round}!`), 800);
+    }
     endRound();
     return;
   }
@@ -225,6 +253,7 @@ function endRound() {
 }
 
 function startNextRound() {
+  if (matchOver) return;
   hideModal();
   round++;
   board = [...EMPTY_BOARD];
@@ -238,6 +267,9 @@ function startNextRound() {
 
 function resetAll() {
   hideModal();
+  matchOver   = false;
+  gameStarted = false;
+  setGoalButtonStates();
   cancelAnimationFrame(confettiFrame);
   confettiCanvas.getContext("2d").clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
 
@@ -257,8 +289,8 @@ function resetAll() {
 function updateScoreboard() {
   labelXEl.textContent = getPlayerName("X");
   labelOEl.textContent = getPlayerName("O");
-  scoreXEl.textContent = scores.X;
-  scoreOEl.textContent = scores.O;
+  scoreXEl.textContent = `${scores.X} / ${winsGoal}`;
+  scoreOEl.textContent = `${scores.O} / ${winsGoal}`;
   scoreDrawEl.textContent = scores.draw;
 }
 
@@ -280,14 +312,14 @@ function saveLeaderboard(lb) {
 }
 
 function addToLeaderboard(name) {
-  const lb = loadLeaderboard();
-  lb[name] = (lb[name] || 0) + 1;
-  saveLeaderboard(lb);
-  renderLeaderboard(lb); // pass lb directly — avoids a second localStorage read
+  const leaderboard = loadLeaderboard();
+  leaderboard[name] = (leaderboard[name] || 0) + 1;
+  saveLeaderboard(leaderboard);
+  renderLeaderboard(leaderboard); // pass directly — avoids a second localStorage read
 }
 
-function renderLeaderboard(lb = loadLeaderboard()) {
-  const entries = Object.entries(lb).sort((a, b) => b[1] - a[1]).slice(0, 10);
+function renderLeaderboard(leaderboard = loadLeaderboard()) {
+  const entries = Object.entries(leaderboard).sort((a, b) => b[1] - a[1]).slice(0, 10);
 
   if (entries.length === 0) {
     leaderboardList.innerHTML = '<li class="leaderboard-empty">Noch keine Einträge</li>';
@@ -317,7 +349,7 @@ function getAIMove() {
 
 function getRandomMove() {
   const indices = [];
-  board.forEach((v, i) => { if (v === "") indices.push(i); });
+  board.forEach((cell, i) => { if (cell === "") indices.push(i); });
   return indices.length ? indices[Math.floor(Math.random() * indices.length)] : -1;
 }
 
@@ -334,21 +366,21 @@ function getBestMove() {
   return bestMove;
 }
 
-function minimax(b, isMax) {
-  if (hasWon("O", b)) return 10;
-  if (hasWon("X", b)) return -10;
-  if (b.every(c => c !== "")) return 0;
+function minimax(state, isMax) {
+  if (hasWon("O", state)) return 10;
+  if (hasWon("X", state)) return -10;
+  if (state.every(cell => cell !== "")) return 0;
 
   if (isMax) {
     let best = -Infinity;
     for (let i = 0; i < 9; i++) {
-      if (b[i] === "") { b[i] = "O"; best = Math.max(best, minimax(b, false)); b[i] = ""; }
+      if (state[i] === "") { state[i] = "O"; best = Math.max(best, minimax(state, false)); state[i] = ""; }
     }
     return best;
   } else {
     let best = Infinity;
     for (let i = 0; i < 9; i++) {
-      if (b[i] === "") { b[i] = "X"; best = Math.min(best, minimax(b, true)); b[i] = ""; }
+      if (state[i] === "") { state[i] = "X"; best = Math.min(best, minimax(state, true)); state[i] = ""; }
     }
     return best;
   }
@@ -418,7 +450,8 @@ document.addEventListener("keydown", (e) => {
   if (e.target.tagName === "INPUT") return;
 
   if (e.key === "Enter" && !roundModal.classList.contains("hidden")) {
-    startNextRound();
+    if (matchOver) resetAll();
+    else startNextRound();
     return;
   }
   const num = parseInt(e.key);
@@ -430,5 +463,22 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
+// ── Spielziel-Stepper ──
+function setGoalButtonStates() {
+  winsGoalDecBtn.disabled = gameStarted || winsGoal <= 1;
+  winsGoalIncBtn.disabled = gameStarted || winsGoal >= 10;
+}
+
+winsGoalDecBtn.addEventListener("click", () => {
+  if (winsGoal > 1) { winsGoal--; winsGoalDisplay.textContent = winsGoal; setGoalButtonStates(); updateScoreboard(); }
+});
+
+winsGoalIncBtn.addEventListener("click", () => {
+  if (winsGoal < 10) { winsGoal++; winsGoalDisplay.textContent = winsGoal; setGoalButtonStates(); updateScoreboard(); }
+});
+
+modalNewGameBtn.addEventListener("click", resetAll);
+
 updateScoreboard();
 renderLeaderboard();
+setGoalButtonStates();
